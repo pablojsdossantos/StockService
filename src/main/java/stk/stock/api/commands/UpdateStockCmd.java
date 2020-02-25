@@ -29,7 +29,7 @@ public class UpdateStockCmd {
     @DecimalMax("99999.99")
     private double dividend;
 
-    @DecimalMin("0.01")
+    @DecimalMin("0.00")
     @DecimalMax("99999.99")
     private double dividendYield;
 

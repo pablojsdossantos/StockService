@@ -1,6 +1,6 @@
 package stk.stock.entity;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  *
@@ -14,7 +14,7 @@ public class Stock {
     private double dividendYield;
     private int realEstateAssetCount;
     private String category;
-    private Instant lastUpdate;
+    private LocalDate lastUpdate;
 
     public String getCode() {
         return code;
@@ -72,11 +72,11 @@ public class Stock {
         this.category = category;
     }
 
-    public Instant getLastUpdate() {
+    public LocalDate getLastUpdate() {
         return lastUpdate;
     }
 
-    public void setLastUpdate(Instant lastUpdate) {
+    public void setLastUpdate(LocalDate lastUpdate) {
         this.lastUpdate = lastUpdate;
     }
 }

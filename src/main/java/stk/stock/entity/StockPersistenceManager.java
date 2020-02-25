@@ -5,6 +5,7 @@ import etk.jdbc.connection.Session;
 import etk.jdbc.mapping.Insert;
 import etk.jdbc.mapping.Sql;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.RequestScoped;
 
@@ -24,7 +25,7 @@ public class StockPersistenceManager {
         return this.connection.writeAsync(session -> {
             this.insertCommand(session, command);
             this.insertHistory(session, historyItem);
-            this.updateStock(session, stock, historyItem.getReferenceDate());
+            this.updateStock(session, stock);
 
             return null;
         });
@@ -63,8 +64,8 @@ public class StockPersistenceManager {
         session.executeUpdate(sql, false);
     }
 
-    private void updateStock(Session session, Stock stock, LocalDate referenceDate) {
-        session.createStatement(""
+    private void updateStock(Session session, Stock stock) {
+        long updatedRowsCount = session.createStatement(""
             + "UPDATE stock"
             + "   SET current_price = ${price},"
             + "       daily_liquidity = ${liquidity},"
@@ -83,7 +84,66 @@ public class StockPersistenceManager {
             .bind("category", stock.getCategory())
             .bind("lastUpdate", stock.getLastUpdate())
             .bind("stockCode", stock.getCode())
-            .bind("referenceDate", referenceDate)
+            .bind("referenceDate", stock.getLastUpdate())
             .execute();
+
+        if (updatedRowsCount == 0) {
+            this.insertIgnoreStock(session, stock);
+        }
+    }
+
+    private void insertIgnoreStock(Session session, Stock stock) {
+        Sql sql = Insert.ignoreInto("stock")
+            .value("stock_code", stock.getCode())
+            .value("category", stock.getCategory())
+            .value("current_price", stock.getCurrentPrice())
+            .value("daily_liquidity", stock.getDailyLiquidity())
+            .value("dividend", stock.getDividend())
+            .value("dividend_yield", stock.getDividendYield())
+            .value("real_estate_asset_count", stock.getRealEstateAssetCount())
+            .value("last_update", stock.getLastUpdate())
+            .build();
+
+        session.executeUpdate(sql, false);
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findNextStockHistory(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory1d(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory1m(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory3m(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory6m(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory1y(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Optional<StockHistory>> findStockHistory5y(String stockCode, LocalDate referenceDate) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Void> save(ComputeHistoryVarCommand command) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public CompletionStage<Void> save(StockHistoryVar entity) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

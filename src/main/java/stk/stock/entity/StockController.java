@@ -2,10 +2,12 @@ package stk.stock.entity;
 
 import cqk.api.parsers.GsonFactory;
 import cqk.api.parsers.ParseUtils;
-import java.time.Instant;
+import io.vertx.axle.core.eventbus.EventBus;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.RequestScoped;
 import stk.stock.api.commands.UpdateStockCmd;
+import stk.stock.messaging.StockOutputChannel;
+import stk.stock.messaging.commands.ComputeHistoryVarCmd;
 
 /**
  *
@@ -14,12 +16,15 @@ import stk.stock.api.commands.UpdateStockCmd;
 @RequestScoped
 public class StockController {
     private StockPersistenceManager persistenceManager;
+    private EventBus eventBus;
+
     private Stock stock;
     private StockHistory historyItem;
-    private UpdateStockCommand command;
+    private UpdateStockCommand updateStockCommand;
 
-    public StockController(StockPersistenceManager persistenceManager) {
+    public StockController(StockPersistenceManager persistenceManager, EventBus eventBus) {
         this.persistenceManager = persistenceManager;
+        this.eventBus = eventBus;
     }
 
     public void readUpdateCommand(UpdateStockCmd updateCommand) {
@@ -37,7 +42,7 @@ public class StockController {
         this.stock.setDividendYield(updateCommand.getDividendYield());
         this.stock.setCurrentPrice(updateCommand.getCurrentPrice());
         this.stock.setRealEstateAssetCount(updateCommand.getRealEstateAssetCount());
-        this.stock.setLastUpdate(Instant.now());
+        this.stock.setLastUpdate(ParseUtils.parseDate(updateCommand.getReferenceDate()));
     }
 
     private void instantiateHistoryFromCommand(UpdateStockCmd updateCommand) {
@@ -52,12 +57,20 @@ public class StockController {
     }
 
     private void instantiateCommandFromCommand(UpdateStockCmd updateCommand) {
-        this.command = new UpdateStockCommand();
-        this.command.setId(updateCommand.getCmdId());
-        this.command.setPayload(GsonFactory.createGson().toJson(updateCommand));
+        this.updateStockCommand = new UpdateStockCommand();
+        this.updateStockCommand.setId(updateCommand.getCmdId());
+        this.updateStockCommand.setPayload(GsonFactory.createGson().toJson(updateCommand));
     }
 
     public CompletionStage<Void> saveUpdate() {
-        return this.persistenceManager.save(this.stock, this.historyItem, this.command);
+        return this.persistenceManager.save(this.stock, this.historyItem, this.updateStockCommand);
+    }
+
+    public void requestStockHistoryVarComputation() {
+        ComputeHistoryVarCmd command = new ComputeHistoryVarCmd();
+        command.setStockCode(this.stock.getCode());
+        command.setReferenceDate(ParseUtils.parseDate(this.historyItem.getReferenceDate()));
+
+        this.eventBus.publish(StockOutputChannel.COMPUTE_HISTORY_VAR, command);
     }
 }
