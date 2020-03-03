@@ -31,7 +31,7 @@ ALTER TABLE `stock_history`
   DROP COLUMN `estate_var_5y`;
 
 CREATE TABLE `stock_history_var` (
-  `stock_code` VARCHAR(128) NOT NULL,
+  `stock_code` VARCHAR(20) NOT NULL,
   `reference_date` DATE NULL,
 
   `price_var_1d` DOUBLE NULL,

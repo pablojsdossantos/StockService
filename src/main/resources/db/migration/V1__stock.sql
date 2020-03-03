@@ -7,7 +7,7 @@ CREATE TABLE `update_stock_cmd` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `stock_history` (
-  `stock_code` VARCHAR(128) NOT NULL,
+  `stock_code` VARCHAR(20) NOT NULL,
   `reference_date` DATE NOT NULL,
   `price` DOUBLE NULL,
   `price_var_1d` DOUBLE NULL,
