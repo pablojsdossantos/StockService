@@ -3,6 +3,7 @@ package stk.stock.entity;
 import etk.jdbc.connection.ExConnection;
 import etk.jdbc.connection.Session;
 import etk.jdbc.mapping.Insert;
+import etk.jdbc.mapping.RowMapper;
 import etk.jdbc.mapping.Sql;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -15,6 +16,29 @@ import javax.enterprise.context.RequestScoped;
  */
 @RequestScoped
 public class StockPersistenceManager {
+    private static final String SELECT_STOCK_HISTORY
+        = "SELECT h.stock_code,"
+        + "       h.reference_date,"
+        + "       h.price,"
+        + "       h.daily_liquidity,"
+        + "       h.dividend,"
+        + "       h.dividend_yield,"
+        + "       h.real_estate_asset_count"
+        + "  FROM stock_history h";
+
+    private static final RowMapper<StockHistory> STOCK_HISTORY_MAPPER = rs -> {
+        StockHistory history = new StockHistory();
+        history.setCode(rs.getString("stock_code"));
+        history.setReferenceDate(rs.getLocalDate("reference_date"));
+        history.setDailyLiquidity(rs.getInt("daily_liquidity"));
+        history.setPrice(rs.getDouble("price"));
+        history.setDividend(rs.getDouble("dividend"));
+        history.setDividendYield(rs.getDouble("dividend_yield"));
+        history.setRealEstateAssetCount(rs.getInt("real_estate_asset_count"));
+
+        return history;
+    };
+
     private ExConnection connection;
 
     public StockPersistenceManager(ExConnection connection) {
@@ -108,35 +132,66 @@ public class StockPersistenceManager {
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.connection.readAsync(session ->
+            session.<StockHistory>createQuery(SELECT_STOCK_HISTORY
+                + " WHERE h.stock_code = ${code}"
+                + "   AND h.reference_date = ${date}")
+                .bind("code", stockCode)
+                .bind("date", referenceDate)
+                .map(STOCK_HISTORY_MAPPER)
+                .findFirst());
     }
 
     public CompletionStage<Optional<StockHistory>> findNextStockHistory(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.connection.readAsync(session ->
+            session.<StockHistory>createQuery(SELECT_STOCK_HISTORY
+                + " WHERE h.stock_code = ${code}"
+                + "   AND h.reference_date = (SELECT MIN(s.reference_date)"
+                + "                             FROM stock_history s"
+                + "                            WHERE s.stock_code = h.stock_code "
+                + "                              AND s.reference_date > ${date})")
+                .bind("code", stockCode)
+                .bind("date", referenceDate)
+                .map(STOCK_HISTORY_MAPPER)
+                .findFirst());
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory1d(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.findPastStockHistory(stockCode, referenceDate.minusDays(1));
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory1m(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.findPastStockHistory(stockCode, referenceDate.minusMonths(1));
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory3m(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.findPastStockHistory(stockCode, referenceDate.minusMonths(3));
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory6m(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.findPastStockHistory(stockCode, referenceDate.minusMonths(6));
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory1y(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.findPastStockHistory(stockCode, referenceDate.minusYears(1));
     }
 
     public CompletionStage<Optional<StockHistory>> findStockHistory5y(String stockCode, LocalDate referenceDate) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.findPastStockHistory(stockCode, referenceDate.minusYears(5));
+    }
+
+    public CompletionStage<Optional<StockHistory>> findPastStockHistory(String stockCode, LocalDate date) {
+        return this.connection.readAsync(session ->
+            session.<StockHistory>createQuery(SELECT_STOCK_HISTORY
+                + " WHERE h.stock_code = ${code}"
+                + "   AND h.reference_date = (SELECT MAX(s.reference_date)"
+                + "                             FROM stock_history s"
+                + "                            WHERE s.stock_code = h.stock_code "
+                + "                              AND s.reference_date <= ${date})")
+                .bind("code", stockCode)
+                .bind("date", date)
+                .map(STOCK_HISTORY_MAPPER)
+                .findFirst());
     }
 
     public CompletionStage<Void> save(ComputeHistoryVarCommand command) {
